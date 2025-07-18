@@ -293,7 +293,7 @@ if choose 1; then
   fi
   ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
   # Install a curated list of plugins for a balanced experience
-  for p in romkatv/powerlevel10k zsh-syntax-highlighting zsh-autocomplete Aloxaf/fzf-tab jeffreytse/zsh-vi-mode mafredri/zsh-async zsh-autosuggestions zsh-history-substring-search; do
+  for p in romkatv/powerlevel10k zsh-users/zsh-syntax-highlighting marlonrichert/zsh-autocomplete Aloxaf/fzf-tab jeffreytse/zsh-vi-mode mafredri/zsh-async zsh-users/zsh-autosuggestions zsh-users/zsh-history-substring-search; do
     repo_name=$(basename "$p")
     target_dir="$ZSH_CUSTOM/plugins/$repo_name"
     # Handle specific plugin names that differ from their repo name
@@ -393,7 +393,7 @@ if choose 7; then
   echo_step "Installing Node via NVM…"
   if [[ ! -d "$HOME/.nvm" ]]; then
     if ! $DRY_RUN; then
-      curl --connect-timeout 15 --retry 3 -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+      curl --connect-timeout 15 --retry 3 -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
     else
       echo_dry "Would install NVM using official script."
     fi

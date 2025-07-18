@@ -115,7 +115,55 @@ Run interactively or specify by ID:
 
 ## Detailed package reference
 
-Full reference for each module including upstream links: [Scroll down here](#detailed-package-reference).
+### Module 0: Core
+- **git** - Version control system
+- **curl** - Data transfer tool
+- **build-essential** (Linux) - Compilation tools
+- **Homebrew** (macOS) - Package manager
+
+### Module 1: Zsh + Powerlevel10k
+- **zsh** - Advanced shell
+- **[Oh My Zsh](https://ohmyz.sh/)** - Zsh framework
+- **[Powerlevel10k](https://github.com/romkatv/powerlevel10k)** - Zsh theme
+- **[zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting)** - Syntax highlighting
+- **[zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)** - Command suggestions
+- **[fzf-tab](https://github.com/Aloxaf/fzf-tab)** - Fuzzy tab completion
+
+### Module 2: CLI Toolchain
+- **[git-delta](https://github.com/dandavison/delta)** - Better git diffs
+- **[fzf](https://github.com/junegunn/fzf)** - Fuzzy finder
+- **[ripgrep](https://github.com/BurntSushi/ripgrep)** - Fast grep alternative
+- **[bat](https://github.com/sharkdp/bat)** - Better cat with syntax highlighting
+- **[eza](https://github.com/eza-community/eza)** - Modern ls replacement
+- **[fd](https://github.com/sharkdp/fd)** - Fast find alternative
+- **[bottom](https://github.com/ClementTsang/bottom)** - System monitor
+- **[dust](https://github.com/bootandy/dust)** - Better du
+- **[zoxide](https://github.com/ajeetdsouza/zoxide)** - Smart cd command
+- **[thefuck](https://github.com/nvbn/thefuck)** - Command correction
+
+### Module 3: Nerd Font
+- **[Meslo LG Nerd Font](https://github.com/ryanoasis/nerd-fonts)** - Programming font with icons
+
+### Module 4: Database & Services
+- **MySQL/MariaDB** - Database server
+- **Redis** - In-memory data store
+- **Nginx** - Web server
+- **dnsmasq** - DNS forwarder
+
+### Module 5: PHP Stack (macOS only)
+- **PHP** - Programming language
+- **[Composer](https://getcomposer.org/)** - PHP dependency manager
+- **[direnv](https://direnv.net/)** - Environment variable manager
+- **[Laravel Valet](https://laravel.com/docs/valet)** - Development environment
+
+### Module 6: Git Configuration
+- Opinionated `~/.gitconfig` with delta pager
+- Useful Git aliases and settings
+- GPG signing support
+
+### Module 7: Node & NVM
+- **[NVM](https://github.com/nvm-sh/nvm)** - Node version manager
+- **Node.js LTS** - JavaScript runtime
 
 ---
 

@@ -27,7 +27,7 @@ This Code of Conduct applies within project spaces and in public spaces when rep
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting [parth@example.com]. All complaints will be reviewed and investigated.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project maintainers via GitHub issues. All complaints will be reviewed and investigated.
 
 ---
 
