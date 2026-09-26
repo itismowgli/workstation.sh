@@ -180,6 +180,31 @@ brew_cmd() {
   "$BREW_BIN" "$@"
 }
 
+activate_brew_formula() {
+  local formula=$1
+  local command_name=$2
+  local formula_prefix
+
+  formula_prefix=$(brew_cmd --prefix "$formula") || {
+    echo "Homebrew formula '$formula' is installed, but its prefix could not be determined." >&2
+    return 1
+  }
+
+  if [[ -d "$formula_prefix/bin" ]]; then
+    case ":$PATH:" in
+      *":$formula_prefix/bin:"*) ;;
+      *) PATH="$formula_prefix/bin:$PATH" ;;
+    esac
+    export PATH
+    hash -r
+  fi
+
+  if ! command -v "$command_name" &>/dev/null; then
+    echo "Homebrew formula '$formula' is installed at '$formula_prefix', but '$command_name' is not executable from its bin directory." >&2
+    return 1
+  fi
+}
+
 install_pkgs() {
   if $DRY_RUN; then
     echo_dry "Would check and install packages: $*"
@@ -413,11 +438,16 @@ if choose 5; then
   if [[ $PKG == brew ]]; then
       echo_info "Installing Laravel Valet for macOS..."
       if ! $DRY_RUN; then
-        COMPOSER_BIN_DIR="$HOME/.composer/vendor/bin"
-        if [[ -d "$HOME/Library/Application Support/composer/vendor/bin" ]]; then
-          COMPOSER_BIN_DIR="$HOME/Library/Application Support/composer/vendor/bin"
+        activate_brew_formula "php" "php"
+        if ! COMPOSER_BIN_DIR=$(composer global config bin-dir --absolute) || [[ -z "$COMPOSER_BIN_DIR" ]]; then
+          echo "Composer did not return its global binary directory." >&2
+          exit 1
         fi
         composer global require laravel/valet
+        if [[ ! -x "$COMPOSER_BIN_DIR/valet" ]]; then
+          echo "Valet was installed, but its executable was not found at '$COMPOSER_BIN_DIR/valet'." >&2
+          exit 1
+        fi
         "$COMPOSER_BIN_DIR/valet" install --quiet
       else
         echo_dry "Would install Laravel Valet via Composer."
@@ -566,13 +596,30 @@ autoload -Uz compinit && compinit
 
 # Add user-installed binaries to PATH
 export PATH="$HOME/.local/bin:$PATH"
-# Add Composer binaries to PATH on Linux
-if [[ "$(uname -s)" == "Linux" ]]; then
-  export PATH="$HOME/.config/composer/vendor/bin:$PATH"
-fi
+
+# Add Composer global binaries across supported Composer home locations.
+for WORKSTATION_COMPOSER_BIN_DIR in \
+  "$HOME/.config/composer/vendor/bin" \
+  "$HOME/.composer/vendor/bin" \
+  "$HOME/Library/Application Support/composer/vendor/bin"
+do
+  if [[ -d "$WORKSTATION_COMPOSER_BIN_DIR" ]]; then
+    export PATH="$WORKSTATION_COMPOSER_BIN_DIR:$PATH"
+  fi
+done
+unset WORKSTATION_COMPOSER_BIN_DIR
 
 # Homebrew path (if exists)
 [ -d /opt/homebrew/bin ] && eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# Make an installed but unlinked Homebrew PHP formula available.
+if command -v brew &>/dev/null; then
+  WORKSTATION_PHP_PREFIX="$(brew --prefix php 2>/dev/null || true)"
+  if [[ -n "$WORKSTATION_PHP_PREFIX" && -d "$WORKSTATION_PHP_PREFIX/bin" ]]; then
+    export PATH="$WORKSTATION_PHP_PREFIX/bin:$PATH"
+  fi
+  unset WORKSTATION_PHP_PREFIX
+fi
 
 # NVM (Node Version Manager)
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"

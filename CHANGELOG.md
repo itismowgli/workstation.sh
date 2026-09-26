@@ -10,6 +10,14 @@ All notable changes to this project will be documented here.
 - Add Docker + Docker Compose module
 - Add cross-platform Rust toolchain
 
+## \[v1.1.1] – 2026-09-26
+
+### Fixed
+
+- Fixed macOS PHP setup when Homebrew has PHP installed but its formula is not linked into the current `PATH`.
+- Resolved Composer's global binary directory directly before running Laravel Valet instead of guessing a platform-specific path.
+- Added Composer's macOS global binary locations to the canonical Zsh `PATH` so `valet` remains available in new shells.
+
 ## \[v1.1.0] – 2026-09-26
 
 ### Added
