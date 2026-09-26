@@ -10,6 +10,12 @@ All notable changes to this project will be documented here.
 - Add Docker + Docker Compose module
 - Add cross-platform Rust toolchain
 
+## \[v1.1.2] – 2026-09-26
+
+### Fixed
+
+- Linked the Homebrew `php` formula before installing Valet and verified the `bin/php` symlink that Valet requires.
+
 ## \[v1.1.1] – 2026-09-26
 
 ### Fixed

@@ -205,6 +205,27 @@ activate_brew_formula() {
   fi
 }
 
+ensure_brew_formula_linked() {
+  local formula=$1
+  local command_name=$2
+  local brew_prefix
+
+  activate_brew_formula "$formula" "$command_name"
+  brew_prefix=$(brew_cmd --prefix) || {
+    echo "Homebrew's installation prefix could not be determined." >&2
+    return 1
+  }
+
+  echo_info "Linking Homebrew formula '$formula' for Valet..."
+  brew_cmd link --overwrite "$formula"
+  hash -r
+
+  if [[ ! -L "$brew_prefix/bin/$command_name" ]]; then
+    echo "Homebrew linked '$formula', but Valet requires '$brew_prefix/bin/$command_name' to be a symlink." >&2
+    return 1
+  fi
+}
+
 install_pkgs() {
   if $DRY_RUN; then
     echo_dry "Would check and install packages: $*"
@@ -438,7 +459,7 @@ if choose 5; then
   if [[ $PKG == brew ]]; then
       echo_info "Installing Laravel Valet for macOS..."
       if ! $DRY_RUN; then
-        activate_brew_formula "php" "php"
+        ensure_brew_formula_linked "php" "php"
         if ! COMPOSER_BIN_DIR=$(composer global config bin-dir --absolute) || [[ -z "$COMPOSER_BIN_DIR" ]]; then
           echo "Composer did not return its global binary directory." >&2
           exit 1
