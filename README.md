@@ -54,6 +54,19 @@ chmod +x workstation.sh
 ./workstation.sh            # interactive menu
 ```
 
+### One-command identical setup
+
+Run every module and apply the canonical Git/Delta and Zsh configuration:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/itismowgli/workstation.sh/main/workstation.sh | \
+  bash -s -- --all --name "Your Name" --email you@example.com
+```
+
+Existing `~/.gitconfig` and `~/.zshrc` files are backed up before the canonical
+versions are written, so re-running this command keeps machines aligned while
+leaving a recovery copy of the previous configuration.
+
 ### Updating the Script
 
 ```bash
@@ -130,7 +143,7 @@ Run interactively or specify by ID:
 - **[fzf-tab](https://github.com/Aloxaf/fzf-tab)** - Fuzzy tab completion
 
 ### Module 2: CLI Toolchain
-- **[git-delta](https://github.com/dandavison/delta)** - Better git diffs
+- **[git-delta](https://dandavison.github.io/delta/)** - Syntax-highlighted Git diffs, installed with a recent `less` pager
 - **[fzf](https://github.com/junegunn/fzf)** - Fuzzy finder
 - **[ripgrep](https://github.com/BurntSushi/ripgrep)** - Fast grep alternative
 - **[bat](https://github.com/sharkdp/bat)** - Better cat with syntax highlighting
@@ -157,7 +170,7 @@ Run interactively or specify by ID:
 - **[Laravel Valet](https://laravel.com/docs/valet)** - Development environment
 
 ### Module 6: Git Configuration
-- Opinionated `~/.gitconfig` with delta pager
+- Canonical `~/.gitconfig` with Delta pager, side-by-side diffs, line numbers, navigation, and hyperlinks
 - Useful Git aliases and settings
 - GPG signing support
 

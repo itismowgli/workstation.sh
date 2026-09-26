@@ -44,6 +44,7 @@ NO_COLOR=false
 GIT_NAME=""
 GIT_EMAIL=""
 GIT_SIGN=""
+BREW_BIN=""
 
 # Auto-detect CI environment
 if [[ -n "${CI:-}" ]]; then
@@ -143,6 +144,42 @@ backup_file() {
   fi
 }
 
+find_homebrew() {
+  local candidate
+
+  if command -v brew &>/dev/null; then
+    command -v brew
+    return 0
+  fi
+
+  # A newly installed Homebrew is not added to the current process's PATH.
+  # Check the standard Apple Silicon and Intel prefixes explicitly.
+  for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    if [[ -x "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+activate_homebrew() {
+  local brew_bin shellenv
+  brew_bin=$(find_homebrew) || return 1
+  shellenv=$("$brew_bin" shellenv) || return 1
+  eval "$shellenv" || return 1
+  BREW_BIN="$brew_bin"
+}
+
+brew_cmd() {
+  if [[ -z "$BREW_BIN" ]] && ! activate_homebrew; then
+    echo "Homebrew is not available. Install the Core module first." >&2
+    return 127
+  fi
+  "$BREW_BIN" "$@"
+}
+
 install_pkgs() {
   if $DRY_RUN; then
     echo_dry "Would check and install packages: $*"
@@ -157,7 +194,7 @@ install_pkgs() {
     [[ $pkg == "fd" && ( $PKG == "apt" || $PKG == "dnf" ) ]] && query_pkg="fd-find"
 
     case $PKG in
-      brew) (brew list "$pkg" &>/dev/null || brew list --cask "$pkg" &>/dev/null) && is_installed=true ;;
+      brew) (brew_cmd list "$pkg" &>/dev/null || brew_cmd list --cask "$pkg" &>/dev/null) && is_installed=true ;;
       apt) dpkg -s "$query_pkg" &>/dev/null && is_installed=true ;;
       dnf) rpm -q "$query_pkg" &>/dev/null && is_installed=true ;;
       pacman) pacman -Q "$pkg" &>/dev/null && is_installed=true ;;
@@ -173,7 +210,7 @@ install_pkgs() {
   if [ ${#pkgs_to_install[@]} -gt 0 ]; then
     echo_info "Installing missing packages: ${pkgs_to_install[*]}"
     case $PKG in
-      brew) brew install "${pkgs_to_install[@]}";;
+      brew) brew_cmd install "${pkgs_to_install[@]}";;
       apt) $SUDO apt-get update -qq && $SUDO apt-get install -y "${pkgs_to_install[@]}";;
       dnf) $SUDO dnf -y install "${pkgs_to_install[@]}";;
       pacman)
@@ -245,17 +282,20 @@ if choose 0; then
   echo_step "Installing core packages…"
   case $PKG in
     brew)
-      if ! command -v brew &>/dev/null; then
+      if ! activate_homebrew; then
         echo_info "Homebrew not found. Installing..."
         if ! $DRY_RUN; then
           NONINTERACTIVE=1 /bin/bash -c "$(curl --connect-timeout 15 --retry 3 -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          if ! activate_homebrew; then
+            echo "Homebrew installation completed, but its executable could not be found in /opt/homebrew or /usr/local." >&2
+            exit 1
+          fi
         else
           echo_dry "Would run Homebrew install script."
         fi
       fi
       if ! $DRY_RUN; then
-        eval "$(brew shellenv)"
-        brew analytics off 2>/dev/null || true # Opt-out of telemetry
+        brew_cmd analytics off 2>/dev/null || true # Opt-out of telemetry
       fi
       ;;
     apt)
@@ -292,16 +332,13 @@ if choose 1; then
     fi
   fi
   ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
-  # Install a curated list of plugins for a balanced experience
-  for p in romkatv/powerlevel10k zsh-users/zsh-syntax-highlighting marlonrichert/zsh-autocomplete Aloxaf/fzf-tab jeffreytse/zsh-vi-mode mafredri/zsh-async zsh-users/zsh-autosuggestions zsh-users/zsh-history-substring-search; do
+  # Install the active plugin plus optional plugins kept available for later.
+  for p in romkatv/powerlevel10k zsh-users/zsh-syntax-highlighting zsh-users/zsh-autosuggestions Aloxaf/fzf-tab; do
     repo_name=$(basename "$p")
     target_dir="$ZSH_CUSTOM/plugins/$repo_name"
     # Handle specific plugin names that differ from their repo name
     if [[ $p == "romkatv/powerlevel10k" ]]; then
         target_dir="$ZSH_CUSTOM/themes/powerlevel10k"
-    elif [[ $p == "mafredri/zsh-async" ]]; then
-        repo_name="async"
-        target_dir="$ZSH_CUSTOM/plugins/$repo_name"
     fi
 
     if [[ ! -d "$target_dir" ]]; then
@@ -320,7 +357,7 @@ fi
 # --------------------------  2. CLI toolchain  ----------------------------------------
 if choose 2; then
   echo_step "Installing CLI toolkit…"
-  install_pkgs "git-delta" "fzf" "ripgrep" "bat" "eza" "fd" "bottom" "dust" "zoxide" "thefuck"
+  install_pkgs "git-delta" "less" "fzf" "ripgrep" "bat" "eza" "fd" "bottom" "dust" "zoxide" "thefuck"
 
   if ! $DRY_RUN; then
     if [[ $PKG == "dnf" ]] && command -v fdfind &>/dev/null && ! command -v fd &>/dev/null; then
@@ -330,7 +367,7 @@ if choose 2; then
     fi
     if [[ $PKG == brew ]] && command -v fzf &>/dev/null; then
         echo_info "Running fzf install script..."
-        "$(brew --prefix)/opt/fzf/install" --all --no-bash --no-fish --no-update-rc
+        "$(brew_cmd --prefix)/opt/fzf/install" --all --no-bash --no-fish --no-update-rc
     fi
   else
     echo_dry "Would run post-install steps for fzf and fd if needed."
@@ -342,7 +379,7 @@ if choose 3 && ! $IS_WSL; then
   echo_step "Installing Nerd Font (Meslo)..."
   if ! $DRY_RUN; then
     case $PKG in
-      brew) brew tap homebrew/cask-fonts &>/dev/null || true; brew install --cask font-meslo-lg-nerd-font;;
+      brew) brew_cmd tap homebrew/cask-fonts &>/dev/null || true; brew_cmd install --cask font-meslo-lg-nerd-font;;
       apt) $SUDO apt-get update -qq && $SUDO apt-get install -y fonts-noto fonts-noto-color-emoji;;
       dnf) $SUDO dnf install -y google-noto-emoji-color-fonts;;
       pacman) $SUDO pacman -Sy --noconfirm --needed noto-fonts-emoji;;
@@ -412,6 +449,10 @@ fi
 # --------------------------  6. gitconfig ---------------------------------------------
 if choose 6; then
   echo_step "Writing ~/.gitconfig…"
+  # Keep the Git module self-contained when the broader CLI module is skipped.
+  if ! choose 2; then
+    install_pkgs "git-delta" "less"
+  fi
   if ! $DRY_RUN; then
     backup_file "$HOME/.gitconfig"
     cat > "$HOME/.gitconfig" <<EOF
@@ -456,7 +497,7 @@ $( [[ -n $GIT_SIGN ]] && echo "    signingkey = $GIT_SIGN" )
     file-style = omit
     hunk-header-decoration-style = blue box
     hunk-header-file-style = red
-    hunk-header-line-number-style = #067a00
+    hunk-header-line-number-style = "#067a00"
     hunk-header-style = file line-number syntax
 [pull]
     rebase = false
@@ -490,7 +531,7 @@ fi
 
 # --------------------------  8. Dotfiles (Zsh) ----------------------------------------
 if choose 1; then
-  echo_step "Configuring ~/.zshrc…"
+  echo_step "Synchronizing ~/.zshrc…"
   ZSHRC_BLOCK=$(cat <<'ZRC'
 # --- workstation.sh block start ---
 # Generated by workstation.sh
@@ -512,9 +553,9 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 # Standard up/down arrow history is enabled by default.
 plugins=(git zsh-syntax-highlighting)
 
-# To enable more advanced features, uncomment the following line.
-# These plugins are already installed and ready to be enabled.
-# plugins+=(zsh-autosuggestions zsh-autocomplete fzf-tab zsh-history-substring-search zsh-vi-mode async)
+# These optional plugins are installed but intentionally inactive.
+# Uncomment the following line to enable them.
+# plugins+=(zsh-autosuggestions fzf-tab)
 
 source "$ZSH/oh-my-zsh.sh"
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
@@ -565,20 +606,12 @@ alias du='dust'
 # --- workstation.sh block end ---
 ZRC
 )
-  if ! grep -q "# --- workstation.sh block start ---" "$HOME/.zshrc" 2>/dev/null; then
-    echo_info "Appending workstation.sh configurations to ~/.zshrc..."
-    if ! $DRY_RUN; then
-      # backup_file is now handled by the append logic to avoid double-backup
-      if [[ -f "$HOME/.zshrc" ]]; then
-        cp "$HOME/.zshrc" "$HOME/.zshrc.bak.$(date +%Y-%m-%d_%H-%M-%S)"
-        echo_info "Backed up existing ~/.zshrc"
-      fi
-      echo -e "\n$ZSHRC_BLOCK" >> "$HOME/.zshrc"
-    else
-      echo_dry "Would append configurations to ~/.zshrc (after backing up)."
-    fi
+  if ! $DRY_RUN; then
+    backup_file "$HOME/.zshrc"
+    printf '%s\n' "$ZSHRC_BLOCK" > "$HOME/.zshrc"
+    echo_info "Installed the canonical workstation.sh ~/.zshrc."
   else
-    echo_info "workstation.sh configurations already exist in ~/.zshrc. Skipping."
+    echo_dry "Would replace ~/.zshrc with the canonical configuration after backing it up."
   fi
 fi
 
